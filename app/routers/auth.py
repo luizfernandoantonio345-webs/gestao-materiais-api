@@ -38,7 +38,7 @@ _desafios: dict[str, int] = {}
 
 
 @router.post("/login", response_model=LoginResp)
-async def login(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db)]):
+async def login(request: Request, form: Annotated[OAuth2PasswordRequestForm, Depends()], db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     ip = request.client.host if request.client else None
     res = await db.execute(select(Usuario).where(Usuario.email == form.username))
     usuario = res.scalar_one_or_none()
@@ -96,7 +96,7 @@ async def _consumir_backup_code(usuario: Usuario, codigo: str, db: AsyncSession)
 
 
 @router.post("/mfa/verify", response_model=LoginResp)
-async def mfa_verify(dados: MfaVerify, db: Annotated[AsyncSession, Depends(get_db)]):
+async def mfa_verify(dados: MfaVerify, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     uid = _desafios.get(dados.desafio_id)
     if not uid:
         raise HTTPException(status_code=400, detail="Desafio inválido ou expirado.")
@@ -114,7 +114,7 @@ async def mfa_verify(dados: MfaVerify, db: Annotated[AsyncSession, Depends(get_d
 
 
 @router.post("/refresh", response_model=LoginResp)
-async def refresh(dados: RefreshReq, db: Annotated[AsyncSession, Depends(get_db)]):
+async def refresh(dados: RefreshReq, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     resultado = await rotacionar_refresh(db, dados.refresh_token)
     if not resultado:
         raise HTTPException(status_code=401, detail="Refresh token inválido ou revogado.")
@@ -123,7 +123,7 @@ async def refresh(dados: RefreshReq, db: Annotated[AsyncSession, Depends(get_db)
 
 
 @router.post("/logout", status_code=204)
-async def logout(dados: RefreshReq, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def logout(dados: RefreshReq, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     try:
         payload = decodificar(dados.refresh_token)
         if payload.get("jti"):
@@ -138,7 +138,7 @@ async def me(usuario: CurrentUser):
 
 
 @router.patch("/me", response_model=UsuarioOut)
-async def editar_meu_perfil(dados: MeUpdate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def editar_meu_perfil(dados: MeUpdate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     if dados.nome is not None:
         nome = dados.nome.strip()
         if not nome:
@@ -155,7 +155,7 @@ async def editar_meu_perfil(dados: MeUpdate, usuario: CurrentUser, db: Annotated
 
 
 @router.post("/mfa/setup", response_model=MfaSetupOut)
-async def mfa_setup(usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def mfa_setup(usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     secret = mfa_svc.gerar_secret()
     usuario.mfa_secret = secret
     db.add(usuario)
@@ -163,7 +163,7 @@ async def mfa_setup(usuario: CurrentUser, db: Annotated[AsyncSession, Depends(ge
 
 
 @router.post("/mfa/ativar", response_model=MfaAtivarOut)
-async def mfa_ativar(dados: MfaVerify, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def mfa_ativar(dados: MfaVerify, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     if not mfa_svc.verificar_codigo(usuario.mfa_secret, dados.codigo):
         raise HTTPException(status_code=401, detail="Código MFA inválido.")
     codes = mfa_svc.gerar_backup_codes()
@@ -175,7 +175,7 @@ async def mfa_ativar(dados: MfaVerify, usuario: CurrentUser, db: Annotated[Async
 
 
 @router.post("/mfa/desativar", status_code=204)
-async def mfa_desativar(dados: MfaDisable, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def mfa_desativar(dados: MfaDisable, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     if not conferir_senha(dados.senha, usuario.senha_hash):
         raise HTTPException(status_code=401, detail="Senha inválida.")
     usuario.mfa_ativo = False
@@ -187,7 +187,7 @@ async def mfa_desativar(dados: MfaDisable, usuario: CurrentUser, db: Annotated[A
 
 @router.get("/usuarios", response_model=Pagina[UsuarioOut], dependencies=[Depends(require_roles(Papel.GERENTE))])
 async def listar_usuarios(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
     offset: Annotated[int, Query(ge=0)] = 0,
 ):
@@ -198,7 +198,7 @@ async def listar_usuarios(
 
 
 @router.post("/usuarios", response_model=UsuarioOut, status_code=201, dependencies=[Depends(require_roles(Papel.GERENTE))])
-async def criar_usuario(dados: UsuarioCreate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar_usuario(dados: UsuarioCreate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     validar_forca(dados.senha)
     existe = await db.execute(select(Usuario).where(Usuario.email == dados.email))
     if existe.scalar_one_or_none():
@@ -214,7 +214,7 @@ async def criar_usuario(dados: UsuarioCreate, usuario: CurrentUser, db: Annotate
 
 
 @router.patch("/usuarios/{usuario_id}", response_model=UsuarioOut, dependencies=[Depends(require_roles(Papel.GERENTE))])
-async def editar_usuario(usuario_id: int, dados: UsuarioUpdate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def editar_usuario(usuario_id: int, dados: UsuarioUpdate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     alvo = await db.get(Usuario, usuario_id)
     if not alvo:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")

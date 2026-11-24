@@ -24,6 +24,9 @@ class Base(DeclarativeBase):
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """Sessão por requisição. Use com Depends(get_db, scope="function") para que o
+    commit aconteça ANTES de a resposta ser enviada (o cliente só recebe 2xx de dado
+    já persistido, e o middleware de idempotência grava depois do commit)."""
     async with SessionLocal() as session:
         try:
             yield session

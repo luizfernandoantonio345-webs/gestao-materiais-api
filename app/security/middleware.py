@@ -1,3 +1,4 @@
+import logging
 import time
 from collections import defaultdict, deque
 
@@ -9,6 +10,7 @@ from ..config import get_settings
 from ..logging_conf import novo_request_id, request_id_ctx
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -97,6 +99,6 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                     )
                     await sessao.commit()
             except Exception:
-                pass
+                logger.exception("falha ao registrar Idempotency-Key")
 
         return Response(content=corpo, status_code=response.status_code, headers=dict(response.headers), media_type=response.media_type)

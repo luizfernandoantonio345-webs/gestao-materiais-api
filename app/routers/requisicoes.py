@@ -29,7 +29,7 @@ class AtualizarStatus(BaseModel):
 
 
 @router.post("", dependencies=[Depends(require_roles(Papel.ALMOXARIFE))], status_code=201)
-async def criar(dados: CriarRequisicao, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar(dados: CriarRequisicao, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     material = await db.get(Material, dados.material_id)
     if not material:
         raise HTTPException(404, "Material não encontrado.")
@@ -56,7 +56,7 @@ async def criar(dados: CriarRequisicao, usuario: CurrentUser, db: Annotated[Asyn
 
 
 @router.get("")
-async def listar(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)], status: str | None = None):
+async def listar(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")], status: str | None = None):
     stmt = select(RequisicaoEstoque).order_by(RequisicaoEstoque.criado_em.desc())
     if status:
         stmt = stmt.where(RequisicaoEstoque.status == status)
@@ -81,7 +81,7 @@ async def listar(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)], s
 
 
 @router.patch("/{req_id}/comprado", dependencies=[Depends(require_roles(Papel.ADM_COMPRAS))])
-async def marcar_comprado(req_id: int, dados: AtualizarStatus, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def marcar_comprado(req_id: int, dados: AtualizarStatus, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     req = await db.get(RequisicaoEstoque, req_id)
     if not req:
         raise HTTPException(404, "Requisição não encontrada.")
@@ -98,7 +98,7 @@ async def marcar_comprado(req_id: int, dados: AtualizarStatus, usuario: CurrentU
 
 
 @router.patch("/{req_id}/recebido", dependencies=[Depends(require_roles(Papel.ADM_COMPRAS))])
-async def marcar_recebido(req_id: int, dados: AtualizarStatus, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def marcar_recebido(req_id: int, dados: AtualizarStatus, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     req = await db.get(RequisicaoEstoque, req_id)
     if not req:
         raise HTTPException(404, "Requisição não encontrada.")
@@ -119,7 +119,7 @@ async def marcar_recebido(req_id: int, dados: AtualizarStatus, usuario: CurrentU
 
 
 @router.patch("/{req_id}/cancelar", dependencies=[Depends(require_roles(Papel.ALMOXARIFE))])
-async def cancelar(req_id: int, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def cancelar(req_id: int, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     req = await db.get(RequisicaoEstoque, req_id)
     if not req:
         raise HTTPException(404, "Requisição não encontrada.")
