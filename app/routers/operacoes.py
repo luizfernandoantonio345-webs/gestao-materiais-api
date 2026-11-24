@@ -20,7 +20,7 @@ router = APIRouter(tags=["Operações"])
 
 
 @router.post("/estoque/baixa-qr", dependencies=[Depends(require_roles(Papel.ALMOXARIFE))])
-async def baixa_qr(dados: BaixaQR, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def baixa_qr(dados: BaixaQR, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     res = await db.execute(select(Material).where(Material.codigo == dados.codigo_material))
     material = res.scalar_one_or_none()
     if not material:
@@ -52,7 +52,7 @@ async def baixa_qr(dados: BaixaQR, usuario: CurrentUser, db: Annotated[AsyncSess
 
 
 @router.post("/comodatos/devolver", dependencies=[Depends(require_roles(Papel.ALMOXARIFE))])
-async def devolver(dados: DevolucaoQR, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def devolver(dados: DevolucaoQR, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     comodato = await db.get(Comodato, dados.comodato_id)
     if not comodato:
         raise HTTPException(status_code=404, detail="Comodato não encontrado.")
@@ -76,7 +76,7 @@ async def devolver(dados: DevolucaoQR, usuario: CurrentUser, db: Annotated[Async
 
 
 @router.get("/colaboradores/buscar")
-async def buscar_colaboradores(q: str, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def buscar_colaboradores(q: str, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     from sqlalchemy import or_
     stmt = select(Colaborador).where(
         Colaborador.ativo == True,
@@ -90,7 +90,7 @@ async def buscar_colaboradores(q: str, _: CurrentUser, db: Annotated[AsyncSessio
 
 
 @router.get("/comodatos/por-colaborador")
-async def comodatos_por_colaborador(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def comodatos_por_colaborador(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     stmt = select(Comodato).where(Comodato.status == StatusComodato.ABERTO).order_by(Comodato.retirado_em.desc())
     res = await db.execute(stmt)
     comodatos = res.scalars().all()
@@ -119,7 +119,7 @@ async def comodatos_por_colaborador(_: CurrentUser, db: Annotated[AsyncSession, 
 
 @router.get("/estoque/movimentacoes")
 async def listar_movimentacoes(
-    _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)],
+    _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     material_id: int | None = None,
     colaborador_id: int | None = None,
     almoxarife_id: int | None = None,
@@ -155,7 +155,7 @@ async def listar_movimentacoes(
 
 
 @router.get("/comodatos")
-async def listar_comodatos(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)], apenas_abertos: bool = True):
+async def listar_comodatos(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")], apenas_abertos: bool = True):
     stmt = select(Comodato).order_by(Comodato.retirado_em.desc())
     if apenas_abertos:
         stmt = stmt.where(Comodato.status == StatusComodato.ABERTO)
@@ -173,7 +173,7 @@ async def listar_comodatos(_: CurrentUser, db: Annotated[AsyncSession, Depends(g
 
 
 @router.post("/estoque/entrada", dependencies=[Depends(require_roles(Papel.ADM_COMPRAS))])
-async def entrada(dados: EntradaEstoque, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def entrada(dados: EntradaEstoque, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     material = await db.get(Material, dados.material_id)
     if not material:
         raise HTTPException(status_code=404, detail="Material não encontrado.")
@@ -182,6 +182,6 @@ async def entrada(dados: EntradaEstoque, usuario: CurrentUser, db: Annotated[Asy
 
 
 @router.get("/estoque/integridade/{material_id}", dependencies=[Depends(require_roles(Papel.GERENTE, Papel.ADM_COMPRAS))])
-async def integridade(material_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+async def integridade(material_id: int, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     ok = await verificar_integridade_kardex(db, material_id)
     return {"material_id": material_id, "kardex_integro": ok}
