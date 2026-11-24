@@ -34,7 +34,7 @@ async def _get(db: AsyncSession, pedido_id: int) -> Pedido:
 
 
 @router.post("", response_model=PedidoOut, status_code=201, dependencies=[Depends(require_roles(Papel.ALMOXARIFE, Papel.GERENTE))])
-async def criar_pedido(dados: PedidoCreate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar_pedido(dados: PedidoCreate, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     pedido = Pedido(
         numero=await _numero(db),
         status=StatusPedido.AGUARDANDO_GERENTE,
@@ -72,7 +72,7 @@ async def criar_pedido(dados: PedidoCreate, usuario: CurrentUser, db: Annotated[
 @router.get("", response_model=Pagina[PedidoOut])
 async def listar(
     usuario: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     status_filtro: StatusPedido | None = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -91,12 +91,12 @@ async def listar(
 
 
 @router.get("/{pedido_id}", response_model=PedidoOut)
-async def detalhar(pedido_id: int, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def detalhar(pedido_id: int, _: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     return await _get(db, pedido_id)
 
 
 @router.post("/{pedido_id}/aprovar", response_model=PedidoOut)
-async def aprovar(pedido_id: int, dados: AprovacaoGerente, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def aprovar(pedido_id: int, dados: AprovacaoGerente, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     if usuario.papel != Papel.GERENTE:
         raise HTTPException(status_code=403, detail="Apenas gestão aprova.")
     pedido = await _get(db, pedido_id)
@@ -132,7 +132,7 @@ async def aprovar(pedido_id: int, dados: AprovacaoGerente, usuario: CurrentUser,
 
 
 @router.post("/{pedido_id}/comprar", response_model=PedidoOut)
-async def comprar(pedido_id: int, dados: EfetivarCompra, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def comprar(pedido_id: int, dados: EfetivarCompra, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     pedido = await _get(db, pedido_id)
     mapa = {i.id: i for i in pedido.itens}
     for c in dados.itens:
@@ -150,7 +150,7 @@ async def comprar(pedido_id: int, dados: EfetivarCompra, usuario: CurrentUser, d
 
 
 @router.post("/{pedido_id}/receber", response_model=PedidoOut)
-async def receber(pedido_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def receber(pedido_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     pedido = await _get(db, pedido_id)
     for item in pedido.itens:
         if item.qtd_comprada and float(item.qtd_comprada) > 0:
