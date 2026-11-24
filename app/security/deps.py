@@ -20,7 +20,7 @@ _CRED = HTTPException(
 
 async def get_usuario_atual(
     token: Annotated[str, Depends(oauth2)],
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
 ) -> Usuario:
     try:
         payload = decodificar(token)
