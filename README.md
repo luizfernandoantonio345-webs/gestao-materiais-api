@@ -12,13 +12,13 @@
 ![Tests](https://img.shields.io/badge/testes-62-22D3A6)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
 
-[**Demo**](https://gwi-frontend.vercel.app) · [Frontend](https://github.com/luizfernandoantonio345-webs/gwi-frontend) · [Segurança](SECURITY.md)
+[**Demo**](https://gwi-frontend.vercel.app) · [Frontend](https://github.com/luizfernandoantonio345-webs/gestao-materiais-web) · [Segurança](SECURITY.md)
 
 </div>
 
 ---
 
-Backend do módulo de materiais da plataforma GWI, desenvolvido para a **GRAMO Engenharia** para substituir
+Backend de um sistema de gestão de materiais para obras industriais — projeto autoral, pensado para substituir
 o controle manual do almoxarifado de obra. Cobre o ciclo completo: cadastro, requisição, aprovação por alçada,
 compra, entrada em estoque, baixa por QR Code e comodato de ferramentas — com rastreabilidade de cada movimentação.
 
@@ -97,8 +97,7 @@ Ou com Docker (API + PostgreSQL + Redis):
 docker compose up --build
 ```
 
-**Usuários de demonstração** (criados pelo seed): `almoxarife@gramo.com`, `compras@gramo.com`,
-`gerente@gramo.com` — senha definida em `app/seed.py`. Troque as senhas em qualquer ambiente real.
+**Usuários de demonstração** (criados pelo seed): almoxarife, compras e gerente — e-mails e senha definidos em `app/seed.py`. Troque as senhas em qualquer ambiente real.
 
 ## Deploy
 
@@ -112,8 +111,7 @@ Itens que dependem da infraestrutura do cliente, não de código:
 - SSO corporativo (Azure AD / Google Workspace) — a autenticação já é compatível com OIDC
 - Integração com ERP (SAP / TOTVS) e NF-e
 - Rate limit e idempotência em Redis (lógica já isolada; hoje em banco/memória)
-- Pipeline de CI no GitHub Actions — ver [CI.md](CI.md)
 
 ---
 
-<sub>Desenvolvido por <a href="https://github.com/luizfernandoantonio345-webs">Luiz Fernando</a> para a GRAMO Engenharia.</sub>
+<sub>Desenvolvido por <a href="https://github.com/luizfernandoantonio345-webs">Luiz Fernando</a>.</sub>
