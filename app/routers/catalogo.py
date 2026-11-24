@@ -48,7 +48,7 @@ async def _contar(db: AsyncSession, stmt) -> int:
 
 
 @router.post("/classes", response_model=ClasseOut, status_code=201, dependencies=[Depends(somente_adm)])
-async def criar_classe(dados: ClasseCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar_classe(dados: ClasseCreate, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     classe = ClasseMaterial(**dados.model_dump())
     db.add(classe)
     await db.flush()
@@ -57,7 +57,7 @@ async def criar_classe(dados: ClasseCreate, db: Annotated[AsyncSession, Depends(
 
 
 @router.get("/classes", response_model=Pagina[ClasseOut])
-async def listar_classes(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)], limit: Limit = 50, offset: Offset = 0):
+async def listar_classes(_: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")], limit: Limit = 50, offset: Offset = 0):
     base = select(ClasseMaterial).order_by(ClasseMaterial.nome)
     total = await _contar(db, base)
     res = await db.execute(base.limit(limit).offset(offset))
@@ -65,7 +65,7 @@ async def listar_classes(_: CurrentUser, db: Annotated[AsyncSession, Depends(get
 
 
 @router.post("/materiais", response_model=MaterialOut, status_code=201, dependencies=[Depends(somente_adm)])
-async def criar_material(dados: MaterialCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar_material(dados: MaterialCreate, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     if not await db.get(ClasseMaterial, dados.classe_id):
         raise HTTPException(status_code=404, detail="Classe não encontrada.")
     existe = await db.execute(select(Material).where(Material.codigo == dados.codigo))
@@ -81,7 +81,7 @@ async def criar_material(dados: MaterialCreate, db: Annotated[AsyncSession, Depe
 @router.get("/materiais", response_model=Pagina[MaterialOut])
 async def listar_materiais(
     _: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     abaixo_minimo: bool = False,
     busca: str | None = None,
     limit: Limit = 50,
@@ -106,7 +106,7 @@ async def listar_materiais(
     status_code=201,
     dependencies=[Depends(require_roles(Papel.ADM_COMPRAS, Papel.ALMOXARIFE))],
 )
-async def criar_colaborador(dados: ColaboradorCreate, db: Annotated[AsyncSession, Depends(get_db)]):
+async def criar_colaborador(dados: ColaboradorCreate, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     existe = await db.execute(select(Colaborador).where(Colaborador.matricula == dados.matricula))
     if existe.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Matrícula já cadastrada.")
@@ -120,7 +120,7 @@ async def criar_colaborador(dados: ColaboradorCreate, db: Annotated[AsyncSession
 @router.get("/colaboradores", response_model=Pagina[ColaboradorOut])
 async def listar_colaboradores(
     _: CurrentUser,
-    db: Annotated[AsyncSession, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     busca: str | None = None,
     limit: Limit = 50,
     offset: Offset = 0,
@@ -136,7 +136,7 @@ async def listar_colaboradores(
 
 
 @router.delete("/colaboradores/{colaborador_id}", status_code=204, dependencies=[Depends(adm_ou_almox)])
-async def remover_colaborador(colaborador_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def remover_colaborador(colaborador_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     alvo = await db.get(Colaborador, colaborador_id)
     if not alvo or not alvo.ativo:
         raise HTTPException(status_code=404, detail="Colaborador não encontrado.")
@@ -146,7 +146,7 @@ async def remover_colaborador(colaborador_id: int, usuario: CurrentUser, db: Ann
 
 
 @router.delete("/materiais/{material_id}", status_code=204, dependencies=[Depends(somente_adm)])
-async def remover_material(material_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)]):
+async def remover_material(material_id: int, usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")]):
     alvo = await db.get(Material, material_id)
     if not alvo or not alvo.ativo:
         raise HTTPException(status_code=404, detail="Material não encontrado.")
@@ -332,13 +332,13 @@ async def modelo_colaboradores():
 
 
 @router.post("/colaboradores/importar/preview", response_model=PreviewImportacao, dependencies=[Depends(adm_ou_almox)])
-async def preview_colaboradores(db: Annotated[AsyncSession, Depends(get_db)], arquivo: UploadFile = File(...)):
+async def preview_colaboradores(db: Annotated[AsyncSession, Depends(get_db, scope="function")], arquivo: UploadFile = File(...)):
     return _preview(await _analisar_colaboradores(await _ler(arquivo), db))
 
 
 @router.post("/colaboradores/importar/confirmar", response_model=ResultadoImportacao, dependencies=[Depends(adm_ou_almox)])
 async def confirmar_colaboradores(
-    usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)],
+    usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     arquivo: UploadFile = File(...), ignorar_erros: bool = Form(False),
 ):
     linhas = await _analisar_colaboradores(await _ler(arquivo), db)
@@ -361,13 +361,13 @@ async def modelo_materiais():
 
 
 @router.post("/materiais/importar/preview", response_model=PreviewImportacao, dependencies=[Depends(somente_adm)])
-async def preview_materiais(db: Annotated[AsyncSession, Depends(get_db)], arquivo: UploadFile = File(...)):
+async def preview_materiais(db: Annotated[AsyncSession, Depends(get_db, scope="function")], arquivo: UploadFile = File(...)):
     return _preview(await _analisar_materiais(await _ler(arquivo), db))
 
 
 @router.post("/materiais/importar/confirmar", response_model=ResultadoImportacao, dependencies=[Depends(somente_adm)])
 async def confirmar_materiais(
-    usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db)],
+    usuario: CurrentUser, db: Annotated[AsyncSession, Depends(get_db, scope="function")],
     arquivo: UploadFile = File(...), ignorar_erros: bool = Form(False),
 ):
     linhas = await _analisar_materiais(await _ler(arquivo), db)
