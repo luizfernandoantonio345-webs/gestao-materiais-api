@@ -4,6 +4,7 @@
 
 **Gestão de materiais e almoxarifado para obras industriais**
 
+[![CI](https://github.com/luizfernandoantonio345-webs/gestao-materiais-api/actions/workflows/ci.yml/badge.svg)](https://github.com/luizfernandoantonio345-webs/gestao-materiais-api/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL_16-4169E1?logo=postgresql&logoColor=white)
